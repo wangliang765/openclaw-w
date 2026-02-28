@@ -76,12 +76,14 @@ export function renderStreamingGroup(
   startedAt: number,
   onOpenSidebar?: (content: string) => void,
   assistant?: AssistantIdentity,
+  modelId?: string,
 ) {
   const timestamp = new Date(startedAt).toLocaleTimeString([], {
     hour: "numeric",
     minute: "2-digit",
   });
   const name = assistant?.name ?? "Assistant";
+  const modelLabel = modelId ? formatModelLabel(modelId) : null;
 
   return html`
     <div class="chat-group assistant">
@@ -98,6 +100,7 @@ export function renderStreamingGroup(
         )}
         <div class="chat-group-footer">
           <span class="chat-sender-name">${name}</span>
+          ${modelLabel ? html`<span class="chat-model-label">${modelLabel}</span>` : nothing}
           <span class="chat-group-timestamp">${timestamp}</span>
         </div>
       </div>
@@ -128,6 +131,7 @@ export function renderMessageGroup(
     hour: "numeric",
     minute: "2-digit",
   });
+  const modelLabel = group.modelId ? formatModelLabel(group.modelId) : null;
 
   return html`
     <div class="chat-group ${roleClass}">
@@ -148,6 +152,7 @@ export function renderMessageGroup(
         )}
         <div class="chat-group-footer">
           <span class="chat-sender-name">${who}</span>
+          ${modelLabel ? html`<span class="chat-model-label">${modelLabel}</span>` : nothing}
           <span class="chat-group-timestamp">${timestamp}</span>
         </div>
       </div>
@@ -284,4 +289,15 @@ function renderGroupedMessage(
       ${toolCards.map((card) => renderToolCardSidebar(card, onOpenSidebar))}
     </div>
   `;
+}
+
+/**
+ * Format model ID into a user-friendly label.
+ * E.g., "openai/grok-4-1-fast" -> "Grok-4-1-fast"
+ */
+function formatModelLabel(modelId: string): string {
+  // Handle provider/model format
+  const parts = modelId.split("/");
+  const modelName = parts.length > 1 ? parts[parts.length - 1] : modelId;
+  return modelName;
 }

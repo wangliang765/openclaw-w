@@ -16,6 +16,7 @@ export type ChatState = {
   chatRunId: string | null;
   chatStream: string | null;
   chatStreamStartedAt: number | null;
+  chatStreamModelId: string | null;
   lastError: string | null;
 };
 
@@ -25,6 +26,7 @@ export type ChatEventPayload = {
   state: "delta" | "final" | "aborted" | "error";
   message?: unknown;
   errorMessage?: string;
+  modelId?: string;
 };
 
 export async function loadChatHistory(state: ChatState) {
@@ -247,14 +249,23 @@ export function handleChatEvent(state: ChatState, payload?: ChatEventPayload) {
         state.chatStream = next;
       }
     }
+    // Track modelId during streaming
+    if (payload.modelId) {
+      state.chatStreamModelId = payload.modelId;
+    }
   } else if (payload.state === "final") {
     const finalMessage = normalizeFinalAssistantMessage(payload.message);
     if (finalMessage) {
+      // Save modelId to the message for display
+      if (payload.modelId) {
+        (finalMessage as Record<string, unknown>).__modelId = payload.modelId;
+      }
       state.chatMessages = [...state.chatMessages, finalMessage];
     }
     state.chatStream = null;
     state.chatRunId = null;
     state.chatStreamStartedAt = null;
+    state.chatStreamModelId = null;
   } else if (payload.state === "aborted") {
     const normalizedMessage = normalizeAbortedAssistantMessage(payload.message);
     if (normalizedMessage) {
@@ -275,10 +286,12 @@ export function handleChatEvent(state: ChatState, payload?: ChatEventPayload) {
     state.chatStream = null;
     state.chatRunId = null;
     state.chatStreamStartedAt = null;
+    state.chatStreamModelId = null;
   } else if (payload.state === "error") {
     state.chatStream = null;
     state.chatRunId = null;
     state.chatStreamStartedAt = null;
+    state.chatStreamModelId = null;
     state.lastError = payload.errorMessage ?? "chat error";
   }
   return payload.state;

@@ -45,6 +45,7 @@ export type ChatProps = {
   toolMessages: unknown[];
   stream: string | null;
   streamStartedAt: number | null;
+  streamModelId?: string | null;
   assistantAvatarUrl?: string | null;
   draft: string;
   queue: ChatQueueItem[];
@@ -296,6 +297,7 @@ export function renderChat(props: ChatProps) {
               item.startedAt,
               props.onOpenSidebar,
               assistantIdentity,
+              props.streamModelId ?? undefined,
             );
           }
 
@@ -498,6 +500,9 @@ function groupMessages(items: ChatItem[]): Array<ChatItem | MessageGroup> {
     const normalized = normalizeMessage(item.message);
     const role = normalizeRoleForGrouping(normalized.role);
     const timestamp = normalized.timestamp || Date.now();
+    // Extract modelId from message if present
+    const raw = item.message as Record<string, unknown>;
+    const modelId = typeof raw.__modelId === "string" ? raw.__modelId : undefined;
 
     if (!currentGroup || currentGroup.role !== role) {
       if (currentGroup) {
@@ -510,9 +515,14 @@ function groupMessages(items: ChatItem[]): Array<ChatItem | MessageGroup> {
         messages: [{ message: item.message, key: item.key }],
         timestamp,
         isStreaming: false,
+        modelId,
       };
     } else {
       currentGroup.messages.push({ message: item.message, key: item.key });
+      // Preserve modelId if this message has one
+      if (modelId && !currentGroup.modelId) {
+        currentGroup.modelId = modelId;
+      }
     }
   }
 

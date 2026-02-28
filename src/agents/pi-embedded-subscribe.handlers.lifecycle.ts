@@ -29,6 +29,11 @@ export function handleAgentEnd(ctx: EmbeddedPiSubscribeContext) {
   const lastAssistant = ctx.state.lastAssistant;
   const isError = isAssistantMessage(lastAssistant) && lastAssistant.stopReason === "error";
 
+  // Extract modelId from lastAssistant message for display in chat
+  const modelId = isAssistantMessage(lastAssistant)
+    ? `${lastAssistant.provider}/${lastAssistant.model}`
+    : undefined;
+
   if (isError && lastAssistant) {
     const friendlyError = formatAssistantErrorText(lastAssistant, {
       cfg: ctx.params.config,
@@ -47,6 +52,7 @@ export function handleAgentEnd(ctx: EmbeddedPiSubscribeContext) {
         phase: "error",
         error: errorText,
         endedAt: Date.now(),
+        modelId,
       },
     });
     void ctx.params.onAgentEvent?.({
@@ -64,6 +70,7 @@ export function handleAgentEnd(ctx: EmbeddedPiSubscribeContext) {
       data: {
         phase: "end",
         endedAt: Date.now(),
+        modelId,
       },
     });
     void ctx.params.onAgentEvent?.({

@@ -323,6 +323,7 @@ export function createAgentEventHandler({
     seq: number,
     jobState: "done" | "error",
     error?: unknown,
+    modelId?: string,
   ) => {
     const bufferedText = stripInlineDirectiveTagsForDisplay(
       chatRunState.buffers.get(clientRunId) ?? "",
@@ -351,6 +352,7 @@ export function createAgentEventHandler({
                 timestamp: Date.now(),
               }
             : undefined,
+        modelId,
       };
       broadcast("chat", payload);
       nodeSendToSession(sessionKey, "chat", payload);
@@ -362,6 +364,7 @@ export function createAgentEventHandler({
       seq,
       state: "error" as const,
       errorMessage: error ? formatForLog(error) : undefined,
+      modelId,
     };
     broadcast("chat", payload);
     nodeSendToSession(sessionKey, "chat", payload);
@@ -456,6 +459,8 @@ export function createAgentEventHandler({
       if (!isAborted && evt.stream === "assistant" && typeof evt.data?.text === "string") {
         emitChatDelta(sessionKey, clientRunId, evt.runId, evt.seq, evt.data.text);
       } else if (!isAborted && (lifecyclePhase === "end" || lifecyclePhase === "error")) {
+        // Extract modelId from lifecycle event data
+        const modelId = typeof evt.data?.modelId === "string" ? evt.data.modelId : undefined;
         if (chatLink) {
           const finished = chatRunState.registry.shift(evt.runId);
           if (!finished) {
@@ -469,6 +474,7 @@ export function createAgentEventHandler({
             evt.seq,
             lifecyclePhase === "error" ? "error" : "done",
             evt.data?.error,
+            modelId,
           );
         } else {
           emitChatFinal(
@@ -478,6 +484,7 @@ export function createAgentEventHandler({
             evt.seq,
             lifecyclePhase === "error" ? "error" : "done",
             evt.data?.error,
+            modelId,
           );
         }
       } else if (isAborted && (lifecyclePhase === "end" || lifecyclePhase === "error")) {

@@ -17,6 +17,7 @@ export type MessageGroup = {
   messages: Array<{ message: unknown; key: string }>;
   timestamp: number;
   isStreaming: boolean;
+  modelId?: string;
 };
 
 /** Content item types in a normalized message */
