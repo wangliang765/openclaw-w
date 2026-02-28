@@ -163,6 +163,37 @@ function generateAttachmentId(): string {
   return `att-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
+function handleFileSelect(e: Event, props: ChatProps) {
+  const input = e.target as HTMLInputElement;
+  const files = input.files;
+  if (!files || !props.onAttachmentsChange) {
+    return;
+  }
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    if (!file.type.startsWith("image/")) {
+      continue;
+    }
+
+    const reader = new FileReader();
+    reader.addEventListener("load", () => {
+      const dataUrl = reader.result as string;
+      const newAttachment: ChatAttachment = {
+        id: generateAttachmentId(),
+        dataUrl,
+        mimeType: file.type,
+      };
+      const current = props.attachments ?? [];
+      props.onAttachmentsChange?.([...current, newAttachment]);
+    });
+    reader.readAsDataURL(file);
+  }
+
+  // Reset input so the same file can be selected again
+  input.value = "";
+}
+
 function handlePaste(e: ClipboardEvent, props: ChatProps) {
   const items = e.clipboardData?.items;
   if (!items || !props.onAttachmentsChange) {
@@ -460,6 +491,17 @@ export function renderChat(props: ChatProps) {
             ></textarea>
           </label>
           <div class="chat-compose__actions">
+            <label class="btn btn-icon" title="Attach image" ?disabled=${!props.connected}>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                hidden
+                ?disabled=${!props.connected}
+                @change=${(e: Event) => handleFileSelect(e, props)}
+              />
+              ${icons.image}
+            </label>
             <button
               class="btn"
               ?disabled=${!props.connected || (!canAbort && props.sending)}
